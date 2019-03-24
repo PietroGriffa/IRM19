@@ -1,15 +1,18 @@
-#include <stdio.h>    // Standard input/output definitions 
+#include <stdio.h>    // Standard input/output definitions
 #include <stdlib.h>
 #include <unistd.h>   // UNIX standard function definitions
 #include <sys/time.h>
-#include <fcntl.h>    // File control definitions 
-#include <errno.h>    // Error number definitions 
-#include <termios.h>  // POSIX terminal control definitions 
-#include <string.h>   // String function definitions 
+#include <fcntl.h>    // File control definitions
+#include <errno.h>    // Error number definitions
+#include <termios.h>  // POSIX terminal control definitions
+#include <string.h>   // String function definitions
+#include <math.h>
+#define pi=3.1415
+
 
 /*  NOTE:
  *  To apply the filters on a full dataset (done in main file), a loop will have
- *  to be implemented in the main file to iterate through all the datapoints. The 
+ *  to be implemented in the main file to iterate through all the datapoints. The
  *  variable counter indicates the current position of the filter.
  *  Use the PseudoCode from the lecture to help you implement the filters
  */
