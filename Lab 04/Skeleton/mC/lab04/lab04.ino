@@ -30,7 +30,7 @@ void loop() {
   if( Serial.available() )
   {
     Serial.readBytes(&incoming,1);
-    if (incoming == 's')   // we chose ! as the "trigger" character
+    if (incoming == 's')   // we chose s as the "trigger" character
     {
       data = analogRead(A0);
       (float)data = ((float)data*3.3/4095-0.55)*4095/2.2;
