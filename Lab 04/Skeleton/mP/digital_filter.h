@@ -7,7 +7,7 @@
 #include <termios.h>  // POSIX terminal control definitions
 #include <string.h>   // String function definitions
 #include <math.h>
-#define pi=3.1415
+#define pi 3.1415
 
 
 /*  NOTE:
