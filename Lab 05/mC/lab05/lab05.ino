@@ -18,6 +18,7 @@ void buffer_update(float* buf, float data,int N){
 }
 
 float smoothing_filter(float* buf,int N){
+  int i;
   float sum = 0;
   for(i=0;i<N;i++){
     sum+=buf[i];
@@ -28,21 +29,21 @@ float smoothing_filter(float* buf,int N){
 
 
 ////Calculating Blackmann coefficients. Based on formula.
-void blackman_coefs(int arg_M, float arg_fc, double* arg_coefs)
+void blackman_coefs(int arg_M, float arg_fc, float* arg_coefs)
 { /* INSERT CODE HERE */
-  double sum = 0;
+  float sum = 0;
   int i;
   for (i = 0; i<=arg_M ; i++)
   {
     if (i-arg_M/2 == 0)
     {
-        arg_coefs[i] = 2.0*3.1415*(double)arg_fc;
+        arg_coefs[i] = 2.0*3.1415*arg_fc;
     }
     else
     {
-        arg_coefs[i] = sin(2.0*3.1415*(double)arg_fc*(double)(i-arg_M/2))/(double)(i-arg_M/2);
+        arg_coefs[i] = sin(2.0*3.1415*arg_fc*(float)(i-arg_M/2))/(float)(i-arg_M/2);
     }
-    arg_coefs[i] = arg_coefs[i]*(0.42-0.5*cos(2.0*3.1415*(double)i/(double)arg_M)+0.08*cos(4.0*3.1415*(double)i/(double)arg_M));
+    arg_coefs[i] = arg_coefs[i]*(0.42-0.5*cos(2.0*3.1415*(float)i/(float)arg_M)+0.08*cos(4.0*3.1415*(float)i/(float)arg_M));
     sum += arg_coefs[i];
   }
   for (i = 0; i<=arg_M ; i++)
@@ -55,21 +56,22 @@ float blackman_filter(float* bufb,float* arg_coef,int M){
   int i;
   float bs = 0;
   for(i=0;i<M+1;i++){
-    bs += bufb[i]*arg_coef[i]
+    bs = bs + bufb[M-i]*arg_coef[i];
   }
-  bs = bs/(M+1);
   return bs;
 }
 
 
 void loop() {
-  float data,fc,ss,bs;
+  float data,ss,bs;
+  float fc = 0.1;
   int N = 10;
-  int M = 20;
+  int M = 200;
   int counters = 0,counterb = 0;
   float buf[N],bufb[M+1],arg_coefs[M+1];
 
-  int flag = 0; // 0=raw; 1=moving avg; 2=blackman window
+  int flag = 2; // 0=raw; 1=moving avg; 2=blackman window
+  blackman_coefs(M,fc,arg_coefs);
   
   
 
@@ -99,10 +101,9 @@ void loop() {
         }
     }
     if(flag == 2){
-      blackman_coefs(M,fc,arg_coefs);
       if(counterb<M+1){
         buffer_fill(bufb,data,counterb);
-        counter++;
+        counterb++;
         }
       else{
         bs = blackman_filter(bufb,arg_coefs,M);
