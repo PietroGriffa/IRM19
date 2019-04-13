@@ -165,23 +165,24 @@ int EdgeDetect (IplImage* img, int thresh)
 	CvSeq *contours = 0;
 
 	// Find contours in the canny output using the cvFindContours() function
-    cvFindContours(edge_detect,contours);
+    cvFindContours(edge_detect, mem, contours);
 
 	// Create a new image called "edge_img" for storing edge tracking image from gray image. Use 3 channels.
     // you can use cvSet to set the whole image to a specific color (background)
     edge_img = cvCreateImage(cvGetSize(img), 8, 3);
+    cvSet(edge_img, (0, 0, 0));
 
     // define the color of the contour using cvScalar (make sure it's consistent with the number of channels)
-    // !!!!!! TO DO !!!!!!!!!!!!!!!!!!!!!!!
+    cvScalar cont_color(255, 255, 255);
 
     //define the color of contours using cvScalar()
-
+    // | same as previous point | //
 
 	while (contours != 0)
 	{
 		// draw  contours by using the cvDrawContours() function
         // set maxLevel = 0
-        cvDrawContours(edge_img, contours, maxLevel=0); // <-- CHECK THIS OUT
+        cvDrawContours(edge_img, contours, cont_color, cont_color, 0, 1, 8);
 
         // pointer to the next sequence
 		contours = contours->h_next;
