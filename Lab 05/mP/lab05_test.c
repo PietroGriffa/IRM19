@@ -27,11 +27,12 @@ int main()
     /* Call function lab05_Task1.c several times (with varying parameters) to perform Task 1. Implement everything in the lab04_Task1.c */
     /* INSERT CODE HERE */
     type = 1;
-    N = 10;
+    N = 50;
     M = 200;
-    fc = 0.1;
-    
-    lab05_Task1(type, N, fc, M);
+    fc = 0.012;
+    for(type=1;type<=4;type++){
+		lab05_Task1(type, N, fc, M);
+	}
    
 /////// TASK 1  ENDS /////////
   

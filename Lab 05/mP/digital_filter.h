@@ -13,9 +13,11 @@
  *  variable counter indicates the current position of the filter.
  *  Use the PseudoCode from the lecture to help you implement the filters
  */
+void buffer_fill(float* buf, float data, int counter);
 
+void buffer_update(float* buf, float data,int N);
 
-float smoothing_filter( float* sensRawArray, int filterSamples, int counter);
+float smoothing_filter( float* buf, int N);
 /*  Online Smoothing filter. Takes average of N ("filterSamples") previous samples at a specific position ("counter") in "sensRawArray"
  *  sensRawArray - array for raw data
  *  filterSamples - number of samples in filter (N)
@@ -23,7 +25,7 @@ float smoothing_filter( float* sensRawArray, int filterSamples, int counter);
  *  return filtered Datapoint at filter position
  */
 
-float blackman_coefs(int arg_M, float arg_fc, double* arg_coefs);
+void blackman_coefs(int arg_M, float arg_fc, float* arg_coefs);
 /*  Calculating Blackmann coefficients. Based on formula. Be Careful when dividing two int-variables!!!
  *  argM - m
  *  arg_fc_2 - fc
@@ -32,7 +34,7 @@ float blackman_coefs(int arg_M, float arg_fc, double* arg_coefs);
  *  return 0
  */
 
-float blackman_filter( float* arg_raw_data, int arg_M, double* arg_coefs, int counter);
+float blackman_filter(float* bufb,float* arg_coef,int M);
 /*  Blackman Filter. Takes blackman filtered Data of M ("arg_M") previous samples at a specific position ("counter") in "arg_raw_data".
  *  int *arg_raw_data - array of raw filter data
  *  int arg_M - m

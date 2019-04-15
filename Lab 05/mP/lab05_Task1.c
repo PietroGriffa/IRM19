@@ -12,7 +12,7 @@ void lab05_Task1(int type, int arg_N, float arg_fc, int arg_M)
     int j =0,i=0;
     FILE *sig,*fp;
     
-    double b_coefs[arg_M+1];
+    float b_coefs[arg_M+1];
     //~ char out[10];
    
     /* Read Files into data vector for raw data and filter with smoothing and blackman*/
@@ -56,34 +56,36 @@ void lab05_Task1(int type, int arg_N, float arg_fc, int arg_M)
 		fscanf(sig,"%f%*c%f\n",&time[j],&data[j]);
 	}
 	fclose(sig);
-    
-    
-    
-    // moving average filter
-    for (i=0; i<arg_N/2;i++)
-   {
-	   ss[i]=data[i];
-   }
-      for (i=MAX_SAMPLES_2-arg_N/2; i<MAX_SAMPLES_2;i++)
-   {
-	   ss[i]=data[i];
-   }
-   for (i=arg_N/2-1; i<MAX_SAMPLES_2-arg_N/2;i++)
-   {
-	   ss[i]=smoothing_filter( data, arg_N, i);
-   }
-
-	// blackman filter 
-   blackman_coefs(arg_M,arg_fc,b_coefs);
-   for (i=0; i<arg_M;i++)
-   {
-	   bs[i]=data[i];
-   }
-   for (i=arg_M; i<MAX_SAMPLES_2;i++)
-   {
-	   bs[i]=blackman_filter( data, arg_M, b_coefs, i);
-   }
-    
+   
+    // Version 2:
+	int counters = 0,counterb = 0;
+    float buf[arg_N],bufb[arg_M+1],arg_coefs[arg_M+1];
+	blackman_coefs(arg_M,arg_fc,b_coefs);
+	
+	for(i=0;i<MAX_SAMPLES_2;i++){
+	  // smoothing
+	  if(counters<arg_N){
+        buffer_fill(buf,data[i],counters);
+        counters++;
+		// ss[i] = data[i];
+        }
+      else{
+        ss[i-(arg_N/2)] = smoothing_filter(buf,arg_N);
+        buffer_update(buf,data[i],arg_N);
+        }
+	  // blackman
+	  if(counterb<arg_M+1){
+        buffer_fill(bufb,data[i],counterb);
+        counterb++;
+		// bs[i]=data[i];
+        }
+      else{
+        bs[i-arg_M/2] = blackman_filter(bufb,b_coefs,arg_M);
+        buffer_update(bufb,data[i],arg_M+1);
+        }
+	}
+	
+	
     //~ fp = fopen (out, "w"); 
     fprintf(fp, "time\t raw data\t moving average\t windowed sinc");
     for (j=0;j<MAX_SAMPLES_2;j++)
