@@ -30,7 +30,7 @@ int maxSpeed = 500;
 int move_steps (int steps, int dir, int motor) {
    int switch_check;
    int step_limit, step_stop, step_count, out = 0;
-   int switch_press, ref;
+   int ls, switch_press, ref;
   
   // Check the motor and direction of movement, and set the limiting switch accordingly
    if (motor == 1) {
@@ -75,25 +75,83 @@ int move_steps (int steps, int dir, int motor) {
   else {
     step_stop = steps;
   }
-  
+
+  /*
   if (steps != 0 & out == 0) {
     while (step_count <= step_stop) {
-      if (dir == 1) {
-        step(1, FORWARD, MICROSTEP);
+      if (ls == 7) {
+        myMotor1.step(1, FORWARD, MICROSTEP);
       }
-      else if (dir == 2) {
-        step(1, BACKWARD,MICROSTEP);
+      else if (ls == 6) {
+        myMotor1.step(1, BACKWARD,MICROSTEP);
+      }
+      else if (ls == 5) {
+        myMotor2.step(1, FORWARD,MICROSTEP);
+      }
+      else if (ls == 4) {
+        myMotor2.step(1, BACKWARD,MICROSTEP);
       }
           
       switch_press = digitalRead(ls);
       if (switch_press != ref) {
         switch_check = 0;
         break;
-      }
-      
+      } 
       step_count++
     }
   }
+  */
+
+  if (steps != 0 & out == 0) {
+    if (ls == 7) {
+      while (step_count <= step_stop) {
+        myMotor1.step(1, FORWARD, MICROSTEP);
+        switch_press = digitalRead(ls);
+        if (switch_press != ref) {
+          switch_check = 0;
+          break;
+        }
+        step_count++ ; 
+      }
+    }
+    else if (ls == 6) {
+      while (step_count <= step_stop) {
+        myMotor1.step(1, BACKWARD,MICROSTEP);
+        myMotor1.step(1, FORWARD, MICROSTEP);
+        switch_press = digitalRead(ls);
+        if (switch_press != ref) {
+          switch_check = 0;
+          break;
+        }
+        step_count++ 
+      }
+    }
+    else if (ls == 5) {
+      while (step_count <= step_stop) {
+        myMotor2.step(1, FORWARD,MICROSTEP);
+        myMotor1.step(1, FORWARD, MICROSTEP);
+        switch_press = digitalRead(ls);
+        if (switch_press != ref) {
+          switch_check = 0;
+          break;
+        }
+        step_count++ 
+      }
+    }
+    else if (ls == 4) {
+      while (step_count <= step_stop) {
+        myMotor2.step(1, BACKWARD,MICROSTEP);
+        myMotor1.step(1, FORWARD, MICROSTEP);
+        switch_press = digitalRead(ls);
+        if (switch_press != ref) {
+          switch_check = 0;
+          break;
+        }
+        step_count++ 
+      }
+    }
+  }
+  
 
   // After running the loop, return ASCII for the switches
     if (switch_check == 0)  {
