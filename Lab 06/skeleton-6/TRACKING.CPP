@@ -56,16 +56,16 @@ int ColorTrackingSetColors(IplImage* img, int* hmax, int* hmin, int* smax, int* 
 
     // Convert Source Image to HSV, use cvCvtColor()
     // make sure to store the converted image in "imgHSV"
-    cvCvtColor(img,imgHSV,CV_RGB2HSV);
+    cvCvtColor(img,imgHSV,cv::COLOR_BGR2HSV);
 
     // Create Threshold Trackbars using cvCreateTrackbar()
     // the window_name can be any name (e.g. "Set"), just make sure that a window with the same name is created in main()
-	cvCreateTrackbar("Hmin", "Track", hmin, 256, 0);
-	cvCreateTrackbar("Hmax", "Track", hmax, 256, 0);
-	cvCreateTrackbar("Smin", "Track", smin, 256, 0);
-	cvCreateTrackbar("Smax", "Track", smax, 256, 0);
-	cvCreateTrackbar("Vmin", "Track", vmin, 256, 0);
-	cvCreateTrackbar("Vmax", "Track", vmax, 256, 0);
+	cvCreateTrackbar("Hmin", "Track", hmin, 180, 0);
+	cvCreateTrackbar("Hmax", "Track", hmax, 180, 0);
+	cvCreateTrackbar("Smin", "Track", smin, 255, 0);
+	cvCreateTrackbar("Smax", "Track", smax, 255, 0);
+	cvCreateTrackbar("Vmin", "Track", vmin, 255, 0);
+	cvCreateTrackbar("Vmax", "Track", vmax, 255, 0);
 
     // Create a new image to apply thresholds and one to save the mask
     // call the mask "imgThresh" and the masked image "imgShow", think about how many channels should be used for each image
@@ -77,7 +77,7 @@ int ColorTrackingSetColors(IplImage* img, int* hmax, int* hmin, int* smax, int* 
 
     // filter the original image using our mask, save the filtered image in imgShow
     // use the function cvCopy()
-	cvCopy(imgHSV, imgShow, imgThresh);
+	cvCopy(img, imgShow, imgThresh);
 
     // Display the filtered image imgShow using the function cvShowImage()
 	cvShowImage("Track",imgShow);
@@ -98,14 +98,14 @@ int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min,
     /* In this function we will implement our Color Tracking algorithm
        The thresholds min and max are passed to the function and are determined beforehad using ColorTrackingSetColors*/
 
-	int size = 5, linet = 2;
+	int size = 10, linet = 1;
 	IplImage *imgHSV, *imgThresh, *imgShow;
 
     // Create new HSV image
 	imgHSV = cvCreateImage(cvGetSize(img), 8, 3);
 
     // Convert Source Image to HSV (with parameters cv::COLOR_BGR2HSV), use cvCvtVolor()
-    cvCvtColor(img,imgHSV,CV_RGB2HSV);
+    cvCvtColor(img,imgHSV,cv::COLOR_BGR2HSV);
 
     // Create new image to apply thresholds, think about the number of channels needed
     imgThresh = cvCreateImage(cvGetSize(img), 8, 1);
@@ -125,12 +125,12 @@ int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min,
     double area_y = moments_y->m00;
 
     // Determine Center (see: https://docs.opencv.org/3.1.0/d8/d23/classcv_1_1Moments.html)
-	(*positionX) = (moment10_y/area_y);
-	(*positionY) = (moment01_y/area_y);
+	(*positionX) = (int)(moment10_y/area_y);
+	(*positionY) = (int)(moment01_y/area_y);
 
     // Add a cross at center using the function (CrossTarget())
     // you will need to use cvCloneImage to duplicate the original image first
-	imgShow = cvCloneImage(imgHSV);
+	imgShow = cvCloneImage(img);
 	imgShow = CrossTarget(imgShow, *positionX, *positionY, size, linet);
 
     // display the image (the one with the cross), use cvShowImage()
@@ -166,7 +166,7 @@ int EdgeDetect (IplImage* img, int thresh)
     gray_img = cvCreateImage(cvGetSize(img), 8, 1);
 
     // Convert your image "img" to gray (store it in "gray_img") with the function cvCvtColor(), using the parameters called cv::COLOR_BGR2GRAY
-    cvCvtColor(img,gray_img,CV_RGB2GRAY);
+    cvCvtColor(img,gray_img,CV_BGR2GRAY);
 
     // Smooth the gray image by using "cvSmooth" function and using gaussian method (CV_GAUSSIAN).
     // Make sure to create a new image called "smooth_gray_img" first (cvCreateImage) where you can store the smoothed image
@@ -205,7 +205,7 @@ int EdgeDetect (IplImage* img, int thresh)
 	{
 		// draw  contours by using the cvDrawContours() function
         // set maxLevel = 0
-        cvDrawContours(edge_img, contours, cvScalar(255, 255, 255), cvScalar(255, 255, 255), 0, 1, 8);
+        cvDrawContours(edge_img, contours, cvScalar(0, 255, 0), cvScalar(255, 0, 0), 0);
 
         // pointer to the next sequence
 		contours = contours->h_next;
@@ -214,10 +214,12 @@ int EdgeDetect (IplImage* img, int thresh)
 	// Display images by using cvShowImage() function
 
 	//cvNamedWindow("image", CV_WINDOW_AUTOSIZE);
-	cvShowImage("image",img);
+	//cvShowImage("image",img);
     //cvNamedWindow("gray", CV_WINDOW_AUTOSIZE);
-    cvShowImage("image",gray_img);
+    //cvShowImage("gray",gray_img);
     //cvNamedWindow("edge", CV_WINDOW_AUTOSIZE);
+    //cvShowImage("smooth-gray",smooth_gray_img);
+    //cvShowImage("edge_detect",edge_detect);
     cvShowImage("edge",edge_img);
 
 
@@ -231,7 +233,7 @@ int EdgeDetect (IplImage* img, int thresh)
     }
 
 	//release the used images by using cvReleaseImage() function. Pass the address of your image pointers to cvReleaseImage
-    cvReleaseImage(&img);
+    // cvReleaseImage(&img);
     cvReleaseImage(&gray_img);
     cvReleaseImage(&smooth_gray_img);
     cvReleaseImage(&edge_detect);
@@ -246,7 +248,7 @@ int main ()
 	// Variable initialization
 	IplImage* frame = 0;
 	int key;
-	int hmax, hmin, smax, smin, vmax, vmin;
+	int hmax=10, hmin=0, smax=255, smin=100, vmax=255, vmin=100;
 	CvCapture* capture;
 	int xc,yc;
 	FILE *coordinate;
@@ -278,7 +280,6 @@ int main ()
 
 	cvNamedWindow("Track", CV_WINDOW_AUTOSIZE);
 	// cvMoveWindow("Track", int x_pos, int y_pos);
-	cvNamedWindow("Target", CV_WINDOW_AUTOSIZE);
 
     // write a while loop that loops over all the frames in the .avi file and calls the function ColorTrackingSetColors() on each of them
     // once at the end, start again until the user presses any key
@@ -288,9 +289,9 @@ int main ()
         // use cvSetCaptureProperty() to start again from the beginning if necessary (cvQueryFrame() returns NULL if at the end of movie)
         // cvWaitKey(10) can be used to receive user inputs
         frame = cvQueryFrame(capture);
-        if(frame == NULL)
+        if(!frame)
         {
-			cvSetCaptureProperty(capture,CV_CAP_PROP_POS_FRAMES, 1);
+			cvSetCaptureProperty(capture,CV_CAP_PROP_POS_AVI_RATIO, 0);
 			frame = cvQueryFrame(capture);
 		}
 
@@ -306,7 +307,8 @@ int main ()
 
     // close the window with cvDestroyWindow()
     cvDestroyWindow("Track");
-    cvDestroyAllWindows();
+    
+    cvNamedWindow("Target", CV_WINDOW_AUTOSIZE);
 
 	//cvWaitKey(1000);
 
@@ -322,21 +324,28 @@ int main ()
 	//cvNamedWindow("Target", CV_WINDOW_AUTOSIZE);
     cvSetCaptureProperty(capture,CV_CAP_PROP_POS_FRAMES, 1);
     coordinate = fopen("Coordinates.txt", "w+");
+    capture = cvCaptureFromFile("capture.avi");
     while (1)
     {
 		frame = cvQueryFrame(capture);
-        if(frame == NULL)
+        if(!frame)
         {
+			cvSetCaptureProperty(capture,CV_CAP_PROP_POS_AVI_RATIO,0);
+			frame = cvQueryFrame(capture);
 			break;	// if movie has ended
 		}
 
-		ColorTracking (frame, &xc , &yc, cvScalar(hmin, smin, vmin), cvScalar(hmax, smax, vmax));
+		ColorTracking (frame, &xc , &yc, cvScalar(hmin, smin, vmin,0), cvScalar(hmax, smax, vmax,0));
 		fprintf(coordinate, "\n%d\t%d", xc, yc);
+		
+		if (cvWaitKey(10)!= -1){
+			break; // if movie has ended
+		}
 
     }
     fclose(coordinate);
     cvDestroyWindow("Target");
-    cvDestroyAllWindows();
+    
 
     // ************* PostLab Q3 ************ //
 
@@ -344,16 +353,24 @@ int main ()
     // now use your edge tracking algorithm to track the dot
     // make sure to display (show images) how the dot is being tracked
 
+	frcounter = 0;
+	
 	cvSetCaptureProperty(capture,CV_CAP_PROP_POS_FRAMES, 1);
 	thresh = edgeparam;
     while (1)
     {
 		frame = cvQueryFrame(capture);
-		if(frame == NULL)
+		if(!frame)
         {
+			cvSetCaptureProperty(capture,CV_CAP_PROP_POS_AVI_RATIO,0);
 			break;	// if movie has ended
 		}
 		EdgeDetect (frame, thresh);
+		frcounter++;
+		
+		if (cvWaitKey(10) != -1) {
+			break;
+		}
 
     }
 
@@ -362,6 +379,8 @@ int main ()
 	//release the used images and capture (use cvDestroyAllWindows(), cvReleaseCapture() and cvReleaseImage())
     // make sure to close all windows
 	cvDestroyAllWindows();
+	cvReleaseCapture(&capture);
+    cvReleaseImage(&frame);
 
 
 	return 0;
