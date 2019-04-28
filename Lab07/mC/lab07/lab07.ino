@@ -102,10 +102,10 @@ int move_steps (int steps, int dir, int motor) {
   }
   */
 
-  if (steps != 0 & out == 0) {
+  if (steps > 0 & out == 0) {
     if (ls == 7) {
       while (step_count <= step_stop) {
-        myMotor1.step(1, FORWARD, MICROSTEP);
+        myMotor1->step(1, FORWARD, MICROSTEP);
         switch_press = digitalRead(ls);
         if (switch_press != ref) {
           switch_check = 0;
@@ -116,43 +116,40 @@ int move_steps (int steps, int dir, int motor) {
     }
     else if (ls == 6) {
       while (step_count <= step_stop) {
-        myMotor1.step(1, BACKWARD,MICROSTEP);
-        myMotor1.step(1, FORWARD, MICROSTEP);
+        myMotor1->step(1, BACKWARD,MICROSTEP);
         switch_press = digitalRead(ls);
         if (switch_press != ref) {
           switch_check = 0;
           break;
         }
-        step_count++ 
+        step_count++; 
       }
     }
     else if (ls == 5) {
       while (step_count <= step_stop) {
-        myMotor2.step(1, FORWARD,MICROSTEP);
-        myMotor1.step(1, FORWARD, MICROSTEP);
+        myMotor2->step(1, FORWARD,MICROSTEP);
         switch_press = digitalRead(ls);
         if (switch_press != ref) {
           switch_check = 0;
           break;
         }
-        step_count++ 
+        step_count++; 
       }
     }
     else if (ls == 4) {
       while (step_count <= step_stop) {
-        myMotor2.step(1, BACKWARD,MICROSTEP);
-        myMotor1.step(1, FORWARD, MICROSTEP);
+        myMotor2->step(1, BACKWARD,MICROSTEP);
         switch_press = digitalRead(ls);
         if (switch_press != ref) {
           switch_check = 0;
           break;
         }
-        step_count++ 
+        step_count++; 
       }
     }
   }
   
-
+  
   // After running the loop, return ASCII for the switches
     if (switch_check == 0)  {
       switch (ls) {
@@ -191,7 +188,7 @@ int move_steps (int steps, int dir, int motor) {
 void setup() {
   
   // Start the serial communication at 9600 baud rate
-  Serial.begin(BAUDRATE);
+  Serial.begin(9600);
   // Set serial communication timeout to 10
   Serial.setTimeout(10);
   // Start the Adafruit Motor Shield and set the maximum speed of the stepper to 500 rpm
@@ -264,6 +261,9 @@ void loop() {
     c2 = (command[2]-'0');
     if (c4 >= 0 & c4 <= 9 & c3 >= 0 & c3 <= 9 & c2 >= 0 & c2 <= 9) {
       steps = c4+10*c3+100*c2;
+    }
+    else {
+      check = '5';
     }
     //steps = 1*(command[4]-'0')+10*(command[3]-'0')+100*(command[2]-'0');
     
