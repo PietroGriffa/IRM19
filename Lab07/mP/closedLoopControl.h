@@ -75,7 +75,9 @@ int* positionY - y coordinate of the center of detected color (in pixels)
 Return:
 0
 */
-int ColorTracking (IplImage* img, int* positionX , int* positionY, int color, int* posX , int* posY, int count, int drawTraj);
+int ColorTracking (IplImage* img, int* positionX , int* positionY,
+ CvScalar min, CvScalar max);
+//int ColorTracking (IplImage* img, int* positionX , int* positionY, int color, int* posX , int* posY, int count, int drawTraj);
 
 /*
 Function constructCommand creates command to be sent over serial, for the SAM3x microcontroller 

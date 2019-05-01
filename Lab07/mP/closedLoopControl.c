@@ -137,24 +137,94 @@ IplImage* CrossTarget (IplImage* inImg, int x, int y, int size, int line_thickne
 	return outImg;
 }
 
-int ColorTracking (IplImage* img, int* positionX , int* positionY, int color, int* posX , int* posY, int count, int drawTraj)
+//int ColorTracking (IplImage* img, int* positionX , int* positionY, int color, int* posX , int* posY, int count, int drawTraj)
+int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min, CvScalar max)
 {
     // add your Color tracking algorithm here
-	
-	return 0;
+	int size = 10, linet = 2;
+	IplImage *imgHSV, *imgThresh, *imgShow;
+
+    // Create new HSV image
+	imgHSV = cvCreateImage(cvGetSize(img), 8, 3);
+
+    // Convert Source Image to HSV (with parameters cv::COLOR_BGR2HSV), use cvCvtVolor()
+    cvCvtColor(img,imgHSV,cv::COLOR_BGR2HSV);
+
+    // Create new image to apply thresholds, think about the number of channels needed
+    imgThresh = cvCreateImage(cvGetSize(img), 8, 1);
+
+    // Threshold the image with CvScalar min and CvScalar max, use cvInRangeS()
+	cvInRangeS(imgHSV, min, max, imgThresh);
+
+    // Create memory space for moments (already done)
+    CvMoments *moments_y = (CvMoments*)malloc(sizeof(CvMoments));
+
+    // Calculate moments (already done)
+    cvMoments(imgThresh,moments_y,1);
+
+    // Extract spatial moments and area (already done)
+    double moment10_y = moments_y->m10;
+    double moment01_y = moments_y->m01;
+    double area_y = moments_y->m00;
+
+    // Determine Center (see: https://docs.opencv.org/3.1.0/d8/d23/classcv_1_1Moments.html)
+	(*positionX) = (int)(moment10_y/area_y);
+	(*positionY) = (int)(moment01_y/area_y);
+
+    // Add a cross at center using the function (CrossTarget())
+    // you will need to use cvCloneImage to duplicate the original image first
+	imgShow = cvCloneImage(img);
+	imgShow = CrossTarget(imgShow, *positionX, *positionY, size, linet);
+
+    // display the image (the one with the cross), use cvShowImage()
+	cvShowImage("Target",imgShow);
+
+    // save the the image
+    // uncomment the following code and use the correct image
+    if (frcounter%30 == 0)
+    {
+        char filename[50];
+        sprintf(filename,"Crossed_frame%d.jpg",frcounter);
+        SvImage(imgShow,filename); // you will need to change "image" to the correct variable name
+    }
+	frcounter++;
+
+    // Release created images and free memory (used by moments_y), use cvReleaseImage() and free()
+	cvReleaseImage(&imgHSV);
+	cvReleaseImage(&imgThresh);
+	cvReleaseImage(&imgShow);
+	free(moments_y);
+
+    return 0;
+
 }
 
 int constructCommand (char* command, int u, int motor)
 {
 	// Task 2:
+	
+	int c2,c3,c4;
+	
     // First byte determines the motor to be moved
-
+	command[0] = motor+48;
 	
 	// Second byte determines the direction of movement
-
+	if (u>=0) {
+		command[1] = 1+48;
+	}
+	else {
+		command[1] = 2+48;
+		u = -u;
+	}
 	
 	// Third to fifth bytes determine the number of steps to be moved
     // Remember to convert integers to char first
+    c2 = u/100;
+    c3 = (u-c2*100)/10;
+    c4 = (u-c2*100-c3*10);
+    command[2] = c2 + 48;
+    command[3] = (u-c2*100)/10 + 48;
+    command[4] = (u-c2*100-c3*10) + 48;
 
 	return 0;
 }
@@ -163,21 +233,41 @@ int MoveMotor (int fd, float distance, int motor)
 {
     // Task 3:
     // initialize variables here
-
+	char* command[10];
+	char* buff[1];
+	int u, n=0;
 	
     // The distance must be below the maximum range of 5mm.
+    if (distance>5) {
+		printf("Error: distance too long");
+		return -1;
+	}
 
 	// Create appropriate 5 byte command and write it to the serial port
+	u = distance/0.005;
+	constructCommand(command,u,motor);
+	serialport_write(fd, command);
 
 	// Read from Microcontroller; Create a loop where you wait (usleep(10)) then use:
     // serialport_read_until(fd, buff, '\0', 1, 10) until you get a response
-    
+    while (n == 0) {
+		usleep(10);
+		n = serialport_read_until(fd, buff, '\0', 1, 10);
+		if (n == -1) {
+			return -1;
+		}
+	}			
 
     // check in buff[0] if one of the switches was pressed (E.g. from Arduino Code, buff[0] will be '1'
     // when switch one is pressed)
-
+	if (buff[0]=='1' | buff[0]=='2' | buff[0]=='3' | buff[0]=='4') {
+		return 1;
+	}
+	else {
+		return 0;
+	}
 	
-	return 0;
+	//return 0;
 }
 
 int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int camIndex)
@@ -185,7 +275,14 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
     // Task 5:
     // initialize your variables here
     FILE *fp;
-
+	int flag, side = 0;
+	float l_steps, move_step;
+	int motor, step_count;
+	//int dir;
+	
+	CvCapture* capture;
+	IplImage* frame = 0;
+	int xc,yc,thresh;
 
     // Create a .txt file
     fp = fopen("RectangularCoord.txt", "w+");
@@ -196,23 +293,62 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 	}
     
      // Move the stage along all 4 sides
+     l_steps = distance/steps;
+     if (l_steps > 5) {
+		 printf("A single step is more than 5mm: add more steps");
+		 return -1;
+	 }
+     while (side < 4) {
+		step_count = 0;
+		if (side<=2) {
+			//dir = 1;
+			move_step = l_step;
+		}
+		else {
+			//dir = 2;
+			move_step = -l_step;
+		}
+		if (side%2 == 0) {
+			motor = 2;
+		}
+		else {
+			motor = 2;
+		}
+		while (step_count < steps) {
+			flag = MoveMotor(fd, move_step, motor);
+			if (flag == -1) {
+				printf("Error with the motion");
+				return -1;
+			}
+			else if (flag != 0) {
+				break;
+			}
+			step_count++;
+		}
+		side++;
+	}
 
 	 // If vision is used, initialize camera and  store the coordinates at each point (during movement!)
      // in the .txt file
+     if (vision != 0) {
 
 		// Get camera
-
+		capture = cvCaptureFromCAM(camIndex);
+		if (!capture) {
+			printf("Could not initialize capturing...\n");
+			return -1;
+		}
 		
 		// Grab a frame from camera
+		frame = cvQueryFrame(capture);
 
         // Detect the coordinates of the object
+        ColorTracking (frame, &xc , &yc, cvScalar(hmin, smin, vmin), cvScalar(hmax, smax, vmax));
 
         // Save the coordinates o
-
-
-	
-   
-
+        fprintf(fp, "\n%d\t%d", xc, yc);
+        
+	}
 
 	fclose(fp);
 	
