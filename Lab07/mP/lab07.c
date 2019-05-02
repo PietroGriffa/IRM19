@@ -98,24 +98,39 @@ int main ()
     // YOUR CODE BEGINS HERE:
     
     // initialize your parameters
+	
+	int fd, steps, useVision, camIndex, task;
+	float distance;
 
 	
-	// Initialize the serial port 
+	// Initialize the serial port
+	fd = serialport_init( "/dev/ttymxc3", 115200);
 
 			
 	// prompt user to select a certain task
+	fprintf(stderr,"Which task? task 4 = 0, task 6 = 1\n");
+	task = getchar();
     
     
 	///////// Open Loop Motion /////////
     // --------------------------------------------------------------------------
     ////////////////////////////////////
     // Task 4: move the stage in a direction with a specified distance and track the position to calibrate the camera.
-    
+    if (task == 0){
+	fprintf(stderr,"Distance? enter im [mm]\n");
+	useVision = getchar();
+		
+	}
     
     
     //---------------------------------------------------------------------------
   
     // Task 6: move the stage in a square (5 mm sidelength) and save the coordinates
+	if (task == 1){
+	fprintf(stderr,"Use vision? no = 0, yes = 1\n");
+	useVision = getchar();
+	
+	}
 
     
     
@@ -128,6 +143,7 @@ int main ()
 	
 	
     // Close the serial port
+	serialport_close(fd);
 	
 
 	

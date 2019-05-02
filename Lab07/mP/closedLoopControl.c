@@ -309,7 +309,7 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 			move_step = -l_step;
 		}
 		if (side%2 == 0) {
-			motor = 2;
+			motor = 1;
 		}
 		else {
 			motor = 2;
