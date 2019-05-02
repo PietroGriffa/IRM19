@@ -5,7 +5,7 @@ CFLAGS=`pkg-config --cflags opencv`
 LDFLAGS=`pkg-config --libs opencv`
 
 TARGET= lab07
-OBJECTS= lab07_functions.o lab07.o
+OBJECTS= closedLoopControl.o lab07.o
 
 all: clean compile link
 
