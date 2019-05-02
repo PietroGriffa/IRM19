@@ -309,10 +309,10 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 			move_step = -l_step;
 		}
 		if (side%2 == 0) {
-			motor = 1;
+			motor = 2;
 		}
 		else {
-			motor = 2;
+			motor = 1;
 		}
 		while (step_count < steps) {
 			flag = MoveMotor(fd, move_step, motor);
