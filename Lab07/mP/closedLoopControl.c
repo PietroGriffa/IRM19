@@ -181,6 +181,8 @@ int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min,
 
     // save the the image
     // uncomment the following code and use the correct image
+	
+	/*
     if (frcounter%30 == 0)
     {
         char filename[50];
@@ -188,6 +190,7 @@ int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min,
         SvImage(imgShow,filename); // you will need to change "image" to the correct variable name
     }
 	frcounter++;
+	*/
 
     // Release created images and free memory (used by moments_y), use cvReleaseImage() and free()
 	cvReleaseImage(&imgHSV);
@@ -275,9 +278,9 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
     // Task 5:
     // initialize your variables here
     FILE *fp;
-	int flag, side = 0;
+	int flag, side = 1;
 	float l_steps, move_step;
-	int motor, step_count;
+	int motor, step_count=0;
 	//int dir;
 	
 	CvCapture* capture;
@@ -298,7 +301,7 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 		 printf("A single step is more than 5mm: add more steps");
 		 return -1;
 	 }
-     while (side < 4) {
+     while (side < 5) {
 		step_count = 0;
 		if (side<=2) {
 			//dir = 1;
@@ -317,10 +320,11 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 		while (step_count < steps) {
 			flag = MoveMotor(fd, move_step, motor);
 			if (flag == -1) {
-				printf("Error with the motion");
+				printf("Error with the motion  \n");
 				return -1;
 			}
 			else if (flag != 0) {
+				printf("Limit reached \n");
 				break;
 			}
 			step_count++;
@@ -330,7 +334,7 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 
 	 // If vision is used, initialize camera and  store the coordinates at each point (during movement!)
      // in the .txt file
-     if (vision != 0) {
+    if (useVision != 0) {
 
 		// Get camera
 		capture = cvCaptureFromCAM(camIndex);
@@ -343,7 +347,7 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 		frame = cvQueryFrame(capture);
 
         // Detect the coordinates of the object
-        ColorTracking (frame, &xc , &yc, cvScalar(hmin, smin, vmin), cvScalar(hmax, smax, vmax));
+        ColorTracking (frame, &xc , &yc, cvScalar(30,30,30), cvScalar(255,255,255));
 
         // Save the coordinates o
         fprintf(fp, "\n%d\t%d", xc, yc);

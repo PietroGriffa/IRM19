@@ -99,8 +99,13 @@ int main ()
     
     // initialize your parameters
 	
-	int fd, steps, useVision, camIndex, task;
-	float distance;
+	int fd, steps, useVision, camIndex = 3, task, flag_move = 0;
+	int x1,y1,x2,y2,dx;
+	float distance, cal;
+	int motor, i ;
+	IplImage* frame;
+	CvCapture* capture;
+	
 
 	
 	// Initialize the serial port
@@ -109,7 +114,7 @@ int main ()
 			
 	// prompt user to select a certain task
 	fprintf(stderr,"Which task? task 4 = 0, task 6 = 1\n");
-	task = getchar();
+	scanf("%d",task);
     
     
 	///////// Open Loop Motion /////////
@@ -117,8 +122,39 @@ int main ()
     ////////////////////////////////////
     // Task 4: move the stage in a direction with a specified distance and track the position to calibrate the camera.
     if (task == 0){
-	fprintf(stderr,"Distance? enter im [mm]\n");
-	useVision = getchar();
+		fprintf(stderr,"Distance? enter im [mm]\n");
+		scanf("%f",distance);
+		while (motor != 1 & motor != 2) {
+			fprintf(stderr,"\n Motor? enter 1 or 2\n");
+			scanf("%d",motor);
+		}
+		
+		for (i=0, i<20, i++) {
+			capture = cvCaptureFromCAM(camIndex);
+			frame = vQueryFrame(capture);
+			ColorTracking(frame, &x1, &y1, cvScalar(30,30,30), cvScalar(255,255,255));
+			
+			flag_move = MoveMotor(fd, distance, motor);
+			if (flag_move == 0) {
+				ColorTracking(frame, &x2, &y2, cvScalar(30,30,30), cvScalar(255,255,255));
+			}
+			else {
+				printf(stderr, "Error in motor motion, try again \n");
+				break;
+			}
+			
+			if (motor == 1) {
+				dx = x2-x1;
+			}
+			else {
+				dx = y2-y1;
+			}
+			cal += dx/distance;
+			distance *= -1;
+				
+		}
+		
+		cal /= 20;
 		
 	}
     
@@ -127,8 +163,8 @@ int main ()
   
     // Task 6: move the stage in a square (5 mm sidelength) and save the coordinates
 	if (task == 1){
-	fprintf(stderr,"Use vision? no = 0, yes = 1\n");
-	useVision = getchar();
+		fprintf(stderr,"Use vision? no = 0, yes = 1\n");
+		scanf("%d",useVision);
 	
 	}
 
