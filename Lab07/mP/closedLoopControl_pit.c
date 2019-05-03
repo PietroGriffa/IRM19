@@ -530,3 +530,188 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
     return 0;
 }*/
 
+
+
+
+
+
+
+int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
+{
+    // lab08
+    
+    // initialize your variables here
+    struct timeval currentTime;
+    struct timeval prevTime;
+	IplImage* frame;
+	FILE *fp;
+
+	int useVision;
+	int xc, yc;
+	float Ts = 0.005;
+	float curPosX, curPosY, curErrorX, curErrorY, Kpx, Kpy, Kix, Kiy, Kdx, Kdy, Px, Py;
+	float Ix, Iy, Dx, Dy;
+	float prevErrorX, prevErrorY, Ix_prev, Iy_prev = 0;
+	int fac = 20;
+	int lim = 5;
+	int tol = 3;
+	float Vx, Vy, Ux, Uy;
+
+	
+	// Create a .txt file
+	  fp = fopen("PID.txt", "w+");
+    if (!fp)
+    {
+		printf("Could not create a .txt file...\n");
+		return -1;
+	}
+
+
+	if (capture != 0) {
+
+		// Get camera
+		capture = cvCaptureFromCAM(3);
+		cvSetCaptueProperty(capture,CV_CAP_PROP_FRAME_WIDTH,840);
+		cvSetCaptueProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,840);
+
+		if (!capture) {
+			printf("Could not initialize capturing...\n");
+			return -1;
+		}
+		usleep(10);
+		
+
+        // Save the coordinates o
+        fprintf(fp, "\n%d\%d", xc, yc);
+
+        // Grab the frame from the camera
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+	}
+
+    // Find the X and Y coordinates of an object
+    ColorTracking (frame, &xc , &yc, cvScalar(30,30,30), cvScalar(255,255,255));
+    curPosX = *xc;
+    curPosY = *yc;
+    targetPositionX += curPosX;
+    targetPositionY += curPosY;
+
+	// Get current time and initial error
+	time_t curTime;
+    curTime = time(NULL);
+
+    if(curTime == ((time_t)-1))
+    {
+    	printf("not correct time \n");
+    	return -1;
+    }
+
+    curErrorX = targetPositionX - curPosX;
+    curErrorY = targetPositionY - curPosY;
+
+
+    // write your do - while loop here
+do{
+		// Determine the time interval
+	tic (&str_timeval);
+	t_us = str_timeval.tv_usec;
+	t_sec = str_timeval.tv_sec;
+
+        // Determine the P, I and D (each for X and Y axis seperately)
+	
+    Px = Kpx*curErrorX;
+    Py = Kpy*curErrorY;
+    Ix = Ix_prev + Kix*(curErrorX + prevErrorX)/2*Ts;
+    Iy = Iy_prev + Kiy*(curErrorY + prevErrorY)/2*Ts;
+    Dx = Kdx*(curErrorX - prevErrorX)/Ts;
+    Dy = Kdy*(curErrorY - prevErrorY)/Ts; 
+
+
+		// Compute the control command
+   Vx = (Px + Ix + Dx)/fac;
+   Vy = (Py + Iy + Dy)/fac;
+
+   if(abs(Vx) > lim){
+   	Ux = lim;
+   }
+   else{
+   	Ux=Vx;
+   }
+   if(abs(Vy) > lim){
+   	Uy=lim;
+   }
+   else{
+   	Uy=Vy;
+   }
+ 
+ 		// Move the stage axis X
+   MoveMotor(fd, Ux,1);
+		
+		// Wait until done
+
+	usleep(10);
+
+		// Move the stage axis Y
+   MoveMotor(fd, Uy,2);
+
+		// Wait until done
+    usleep(10);
+
+
+		// Grab the new frame from the camera
+    frame = cvQueryFrame(capture);
+    frame = cvQueryFrame(capture);
+
+		// Determine the new position
+    ColorTracking (frame, &xc , &yc, cvScalar(30,30,30), cvScalar(255,255,255));
+
+		// Save the new position as current position
+    curPosX = *xc,
+    curPosY = *yc;
+
+		// Get current time and update the error
+    prevErrorX = curErrorX;
+    prevErrorY = curErrorY;
+    Ix_prev = Ix;
+    Iy_prev = Iy;
+    curErrorX = targetPositionX - curPosX;
+    curErrorY = targetPositionY - curPosY;
+
+    toc(&str_timeval)
+    long timeInt_us = str_timeval.tv_usec - t_us;
+    long timeInt_sec = str_timeval.tv_sec - t_sec;
+
+} while (!(abs(curErrorX)<tol && abs(curErrorY)<tol));
+
+	fclose(fp);
+	
+    return 0;
+}
+
+
+
+tic(struct timeval* str_time){
+
+	str_time = time(NULL);
+
+    if(str_time == ((time_t)-1))
+    {
+    	printf("not correct tic time \n");
+    	return -1;
+    }
+
+}
+
+toc(struct timeval* str_time){
+
+	str_time = time(NULL);
+
+    if(str_time == ((time_t)-1))
+    {
+    	printf("not correct toc time \n");
+    	return -1;
+    }
+
+}
