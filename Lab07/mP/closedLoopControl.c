@@ -1,67 +1,68 @@
 /*
- * 
+ *
  * Copyright 2015  <ubuntu@udoobuntu>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
- * 
- * 
+ *
+ *
  */
 
 
 // write your includes here
+#include "closedLoopControl.h"
 
 
 int serialport_init(const char* serialport, int baud)
 {
     struct termios toptions;
     int fd;
-    
+
     fd = open(serialport, O_RDWR | O_NONBLOCK);
-    
-    if (fd == -1)  
+
+    if (fd == -1)
         return -1;
-    
-    if (tcgetattr(fd, &toptions) < 0) 
+
+    if (tcgetattr(fd, &toptions) < 0)
         return -1;
-	
+
     speed_t brate = baud;
-    switch (baud) 
+    switch (baud)
     {
-		case 4800:   brate = B4800;   
+		case 4800:   brate = B4800;
 		break;
-		case 9600:   brate = B9600;   
+		case 9600:   brate = B9600;
 		break;
 		#ifdef B14400
-		case 14400:  brate = B14400;  
+		case 14400:  brate = B14400;
 		break;
 		#endif
-		case 19200:  brate = B19200;  
+		case 19200:  brate = B19200;
 		break;
 		#ifdef B28800
-		case 28800:  brate = B28800;  
+		case 28800:  brate = B28800;
 		break;
 		#endif
-		case 38400:  brate = B38400;  
+		case 38400:  brate = B38400;
 		break;
-		case 57600:  brate = B57600;  
+		case 57600:  brate = B57600;
 		break;
-		case 115200: brate = B115200; 
+		case 115200: brate = B115200;
 		break;
     }
-	
+
     cfsetispeed(&toptions, brate);
     cfsetospeed(&toptions, brate);
 
@@ -73,12 +74,12 @@ int serialport_init(const char* serialport, int baud)
     toptions.c_cflag |= CREAD | CLOCAL;  // turn on READ & ignore ctrl lines
     toptions.c_iflag &= ~(IXON | IXOFF | IXANY); // turn off s/w flow ctrl
     toptions.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // make raw
-    toptions.c_oflag &= ~OPOST; // make raw	
+    toptions.c_oflag &= ~OPOST; // make raw
     toptions.c_cc[VMIN]  = 0;
     toptions.c_cc[VTIME] = 0;
-    
+
     tcsetattr(fd, TCSANOW, &toptions);
-    if (tcsetattr(fd, TCSAFLUSH, &toptions) < 0) 
+    if (tcsetattr(fd, TCSAFLUSH, &toptions) < 0)
         return -1;
 
     return fd;
@@ -93,10 +94,10 @@ int serialport_write(int fd, const char* str)
 {
     int len = strlen(str);
     int n = write(fd, str, len);
-	
-    if (n != len) 
+
+    if (n != len)
         return -1;
-		
+
     return 0;
 }
 
@@ -105,35 +106,35 @@ int serialport_read_until(int fd, char* buf, char until, int buf_max, int timeou
     char b[1];  // read expects an array, so we give it a 1-byte array
     int i=0;
     int n=0;
-	
-    do 
-    { 
-        n = read(fd, b, 1);  // read a char at a time		
-        if (n == -1) 
+
+    do
+    {
+        n = read(fd, b, 1);  // read a char at a time
+        if (n == -1)
 			return -1;    // couldn't read
-			
-        if (n == 0) 
+
+        if (n == 0)
         {
             usleep( 1 * 1000 );  // wait 1 msec try again
             timeout--;
             continue;
-        }		
-        buf[i] = b[0]; 
+        }
+        buf[i] = b[0];
         i++;
     } while(b[0] != until && i < buf_max && timeout>0);
 
     buf[i] = 0;  // null terminate the string
-	
+
     return n;
 }
 
 IplImage* CrossTarget (IplImage* inImg, int x, int y, int size, int line_thickness)
-{	
-	IplImage* outImg = inImg;
-	
+{
+	IplImage* outImg = cvCloneImage(inImg);
+
 	cvLine(outImg, cvPoint(x-size,y), cvPoint(x+size,y), cvScalar(0,0,255,0), line_thickness, 8, 0);
 	cvLine(outImg, cvPoint(x,y-size), cvPoint(x,y+size), cvScalar(0,0,255,0), line_thickness, 8, 0);
-	
+
 	return outImg;
 }
 
@@ -142,7 +143,8 @@ int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min,
 {
     // add your Color tracking algorithm here
 	int size = 10, linet = 2;
-	IplImage *imgHSV, *imgThresh, *imgShow;
+	IplImage *imgHSV, *imgThresh;
+	IplImage *imgShow;
 
     // Create new HSV image
 	imgHSV = cvCreateImage(cvGetSize(img), 8, 3);
@@ -177,11 +179,14 @@ int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min,
 	imgShow = CrossTarget(imgShow, *positionX, *positionY, size, linet);
 
     // display the image (the one with the cross), use cvShowImage()
-	cvShowImage("Target",imgShow);
+	cvShowImage("Original image with target",imgShow);
+	int c = cvWaitKey(10); // you need this after showing an image
+    if (c != -1) {
+    }
 
     // save the the image
     // uncomment the following code and use the correct image
-	
+
 	/*
     if (frcounter%30 == 0)
     {
@@ -205,12 +210,12 @@ int ColorTracking (IplImage* img, int* positionX , int* positionY, CvScalar min,
 int constructCommand (char* command, int u, int motor)
 {
 	// Task 2:
-	
+
 	int c2,c3,c4;
-	
+
     // First byte determines the motor to be moved
 	command[0] = motor+48;
-	
+
 	// Second byte determines the direction of movement
 	if (u>=0) {
 		command[1] = 1+48;
@@ -219,15 +224,15 @@ int constructCommand (char* command, int u, int motor)
 		command[1] = 2+48;
 		u = -u;
 	}
-	
+
 	// Third to fifth bytes determine the number of steps to be moved
     // Remember to convert integers to char first
     c2 = u/100;
     c3 = (u-c2*100)/10;
     c4 = (u-c2*100-c3*10);
     command[2] = c2 + 48;
-    command[3] = (u-c2*100)/10 + 48;
-    command[4] = (u-c2*100-c3*10) + 48;
+    command[3] = c3 + 48;
+    command[4] = c4 + 48;
 
 	return 0;
 }
@@ -236,10 +241,10 @@ int MoveMotor (int fd, float distance, int motor)
 {
     // Task 3:
     // initialize variables here
-	char* command[10];
-	char* buff[1];
+	char command[10];
+	char buff[1];
 	int u, n=0;
-	
+
     // The distance must be below the maximum range of 5mm.
     if (distance>5) {
 		printf("Error: distance too long");
@@ -259,33 +264,36 @@ int MoveMotor (int fd, float distance, int motor)
 		if (n == -1) {
 			return -1;
 		}
-	}			
+	}
 
     // check in buff[0] if one of the switches was pressed (E.g. from Arduino Code, buff[0] will be '1'
     // when switch one is pressed)
-	if (buff[0]=='1' | buff[0]=='2' | buff[0]=='3' | buff[0]=='4') {
+	if ((buff[0]=='1') | (buff[0]=='2') | (buff[0]=='3') | (buff[0]=='4')) {
 		return 1;
 	}
 	else {
 		return 0;
 	}
-	
+
 	//return 0;
 }
 
 int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int camIndex)
 {
     // Task 5:
+
     // initialize your variables here
     FILE *fp;
 	int flag, side = 1;
 	float l_steps, move_step;
 	int motor, step_count=0;
 	//int dir;
-	
+
+    CvScalar min=cvScalar(10,10,30), max=cvScalar(255,255,255)
 	CvCapture* capture;
-	IplImage* frame = 0;
-	int xc,yc,thresh;
+	IplImage* frame;
+	int xc,yc;
+	int c;		// int variable for cvWaitKey
 
     // Create a .txt file
     fp = fopen("RectangularCoord.txt", "w+");
@@ -294,68 +302,169 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 		printf("Could not create a .txt file...\n");
 		return -1;
 	}
-    
+
+
+    ////////////////////////////////////////////
+	/////		NO VISION 				////////
+	////////////////////////////////////////////
      // Move the stage along all 4 sides
      l_steps = distance/steps;
      if (l_steps > 5) {
 		 printf("A single step is more than 5mm: add more steps");
 		 return -1;
 	 }
-     while (side < 5) {
-		step_count = 0;
-		if (side<=2) {
-			//dir = 1;
-			move_step = l_step;
-		}
-		else {
-			//dir = 2;
-			move_step = -l_step;
-		}
-		if (side%2 == 0) {
-			motor = 2;
-		}
-		else {
-			motor = 1;
-		}
-		while (step_count < steps) {
-			flag = MoveMotor(fd, move_step, motor);
-			if (flag == -1) {
-				printf("Error with the motion  \n");
-				return -1;
+
+	 if (useVision == 0) {
+
+		 while (side < 5) {
+			step_count = 0;
+			if (side<=2) {
+				//dir = 1;
+				move_step = l_steps;
 			}
-			else if (flag != 0) {
-				printf("Limit reached \n");
-				break;
+			else {
+				//dir = 2;
+				move_step = -l_steps;
 			}
-			step_count++;
+			if (side%2 == 0) {
+				motor = 2;
+			}
+			else {
+				motor = 1;
+			}
+			while (step_count < steps) {
+				flag = MoveMotor(fd, move_step, motor);
+				if (flag == -1) {
+					printf("Error with the motion  \n");
+					return -1;
+				}
+				else if (flag != 0) {
+					printf("Limit reached \n");
+					break;
+				}
+				step_count++;
+			}
+			side++;
 		}
-		side++;
 	}
 
+
+
+	////////////////////////////////////////////
+	/////		USE VISION 				////////
+	////////////////////////////////////////////
 	 // If vision is used, initialize camera and  store the coordinates at each point (during movement!)
      // in the .txt file
-    if (useVision != 0) {
+    else if (useVision == 1){
 
+		printf("step1 \n");	// debug
 		// Get camera
 		capture = cvCaptureFromCAM(camIndex);
+		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_WIDTH,600);
+		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,600);
 		if (!capture) {
 			printf("Could not initialize capturing...\n");
 			return -1;
 		}
-		
+		usleep(10);
+
+		cvNamedWindow("Original image with target", CV_WINDOW_AUTOSIZE);
+
 		// Grab a frame from camera
 		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		frame = cvQueryFrame(capture);
+		usleep(10);
+	    if (!frame)
+	    {
+		    printf("Could not grab frame\n");
+		    return -1;
+	    }
+		printf("step2 \n");	// debug
 
         // Detect the coordinates of the object
-        ColorTracking (frame, &xc , &yc, cvScalar(30,30,30), cvScalar(255,255,255));
+        ColorTracking (frame, &xc , &yc, cvScalar(0,160,160), cvScalar(255,255,255));
+        //usleep(1000);
+        //cvWaitKey(10);
+        c = cvWaitKey(10); // you need this after showing an image
+		if (c != -1) {
+		    usleep(10);
+		}
 
-        // Save the coordinates o
+
+        // Save the coordinates
         fprintf(fp, "\n%d\t%d", xc, yc);
-        
+        printf("step4 \n");	// debug
+
+        while (side < 5) {
+
+			step_count = 0;
+			if (side<=2) {
+				//dir = 1;
+				move_step = l_steps;
+			}
+			else {
+				//dir = 2;
+				move_step = -l_steps;
+			}
+			if (side%2 == 0) {
+				motor = 2;
+			}
+			else {
+				motor = 1;
+			}
+
+			while (step_count < steps) {
+
+				printf("before moving \n");	// debug
+				flag = MoveMotor(fd, move_step, motor);
+				printf("%d \n", flag);	// debug
+
+				if (flag == -1) {
+					printf("Error with the motion  \n");
+					return -1;
+				}
+				else if (flag != 0) {
+					printf("Limit reached \n");
+					break;
+				}
+				usleep(10);
+
+
+				frame = cvQueryFrame(capture);
+				frame = cvQueryFrame(capture);
+				frame = cvQueryFrame(capture);
+				frame = cvQueryFrame(capture);
+				frame = cvQueryFrame(capture);
+				usleep(10);
+			    if (!frame) {
+				    printf("Could not grab frame\n");
+				    return -1;
+			    }
+
+				ColorTracking (frame, &xc , &yc, cvScalar(30,30,30), cvScalar(255,255,255));
+				c = cvWaitKey(10); // you need this after showing an image
+				if (c != -1) {
+				    break;
+				    usleep(10);
+				}
+
+				fprintf(fp, "\n%d\t%d", xc, yc);
+
+				step_count++;
+			}
+			side++;
+			printf("move one step \n");	// debug
+		}
+
 	}
 
 	fclose(fp);
-	
+
 	return 0;
 }
 
@@ -367,53 +476,141 @@ int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
 {
     // lab08
     // initialize your variables here
+    int x1,y1;  // in pixels
+    int e_x,e_y,prev_e_x,prev_e_y;
+    int toll = 5;   // in pixels
+    float v_x,v_y;
+    float Px,Py,Ix,Iy,Dx,Dy;
+    float kp_x,kp_y,ki_x,ki_y,kd_x,kd_y;
+    int timestamp = 0;
+
+    /* we need the calibration constant to convert from pixels to mm */
+    float cal = 0.5;    // insert correct value found in previous task
+
     struct timeval currentTime;
     struct timeval prevTime;
-	IplImage* frame;
-	FILE *fp;
-	
-	// Create a .txt file
 
-	
+	FILE *fp;
+	IplImage* frame;
+	CvScalar min=cvScalar(10,10,30), max=cvScalar(255,255,255)
+
+	// Create a .txt file
+	fp = fopen("PID.txt", "w+");
+    if (!fp)
+    {
+		printf("Could not create a .txt file...\n");
+		return -1;
+	}
+
 	// Grab the frame from the camera
+	//capture = cvCaptureFromCAM(3);
+	frame = cvQueryFrame(capture);
+	frame = cvQueryFrame(capture);
+    frame = cvQueryFrame(capture);
+	frame = cvQueryFrame(capture);
+	usleep(10);
+	if (!frame) {
+        printf("Could not grab frame\n");
+		return -1;
+    }
 
     // Find the X and Y coordinates of an object
+	ColorTracking(frame, &x1, &y1, min, max);
+	c = cvWaitKey(10); // you need this after showing an image
+    if (c != -1) {
+        break;
+		usleep(10);
+    }
 
 	// Get current time and initial error
+	e_x = targetPositionX-x1;
+	e_y = targetPositionY-y1;
+	prev_e_x = 0;
+	prev_e_y = 0;
+	gettimeofday(&currentTime, NULL);
+
+	/* there are two options, we can plot vs:
+            1) an int timestamp which just count number of iterations
+            2) the proper execution time*/
+	fprintf(fp, "\n%d\t%d\t%d", timestamp x1, y1);
 
     // write your do - while loop here
+    while (e_x>toll || e_y>toll) {
 
 		// Determine the time interval
+		prevTime = currentTime;
+		gettimeofday(&currentTime, NULL);
+		dt = currentTime.time_t-prevTime.time_t;              // time in seconds
+		//dt = currentTime.suseconds_t-prevTime.suseconds_t;  // time in milliseconds
 
-        // Determine the P, I and D (each for X and Y axis seperately)
+        // Determine the P, I and D (each for X and Y axis separately)
+        /* Important to remember that MoveMotor want distance in mm */
+        Px = kp_x*e_x;
+        Ix += ki_x*0.5*(e_x+prev_e_x)*dt;
+        Dx = kd_x*(e_x-prev_e_x)/dt;
 
 		// Compute the control command
+		v_x = (Px+Ix+Dx)*cal;   // in mm
+		v_y = (Py+Iy+Dy)*cal;   // in mm
+
+		if (v_x > 5) {          // check saturation
+            v_x = 5;
+		else if (v_x <0.3) {    // to avoid too little steps
+            v_x = 0;
+		}
+		if (v_y > 5) {          // check saturation
+            v_y = 5;
+		}
+		else if (v_y <0.3) {    // to avoid too little steps
+            v_y = 0;
+		}
 
         // Move the stage axis X
+        MoveMotor(fd, v_x, 2);  // motor 1 is in X direction
 
 		// Wait until done
+		// !!! isn't the wait for motion already implemented in MoveMotor?
 
 		// Move the stage axis Y
+		MoveMotor(fd, v_y, 1);  // motor 1 is in Y direction
 
 		// Wait until done
+		// !!! isn't the wait for motion already implemented in MoveMotor?
 
 		// Grab the new frame from the camera
+		frame = cvQueryFrame(capture);
+        frame = cvQueryFrame(capture);
+        frame = cvQueryFrame(capture);
+        frame = cvQueryFrame(capture);
+        usleep(10);
+        if (!frame) {
+            printf("Could not grab frame\n");
+            return -1;
+        }
 
 		// Determine the new position
+		ColorTracking(frame, &x1, &y1, min, max);
+        c = cvWaitKey(10); // you need this after showing an image
+        if (c != -1) {
+            break;
+            usleep(10);
+        }
 
 		// Save the new position as current position
 
 		// Get current time and update the error
+		gettimeofday(&currentTime, NULL);
+		prev_e_x = e_x;
+		prev_e_y = e_y;
+		e_x = targetPositionX-x1;
+		e_y = targetPositionY-y1;
 
+		timestamp ++;
+		fprintf(fp, "\n%d\t%d\t%d", timestamp x1, y1);
+	}
 
 	fclose(fp);
-	
+
     return 0;
 }
-
-
-
-
-
-
 
