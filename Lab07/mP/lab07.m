@@ -4,7 +4,7 @@ clear all
 close all
 
 %% Print rectangula trajectory 
-cal = 14;
+cal = 16;
 coord = importdata('RectangularCoord.txt');
 figure(1);
 title('MoveMotorRectangular');
