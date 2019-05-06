@@ -4,8 +4,8 @@ clear all
 close all
 
 %% Print rectangula trajectory 
-cal = 16;
-coord = importdata('RectangularCoord.txt');
+cal = 19;
+coord = importdata('coordinates.txt');
 figure(1);
 title('MoveMotorRectangular');
 plot(coord(:,1)/cal,coord(:,2)/cal,'ro-');
