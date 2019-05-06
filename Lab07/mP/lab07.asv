@@ -4,12 +4,10 @@ clear all
 close all
 
 %% Print rectangula trajectory 
-cal = 14;
+cal = 15.9;
 coord = importdata('RectangularCoord.txt');
-figure(1);
+figure(0);
 title('MoveMotorRectangular');
-plot(coord(:,1)/cal,coord(:,2)/cal,'ro-');
+plot(coord(:,1)*cal,*cal,'ro-');
 xlabel('x [mm]');
 ylabel('y [mm]');
-grid on
-axis equal
