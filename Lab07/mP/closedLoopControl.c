@@ -132,8 +132,8 @@ IplImage* CrossTarget (IplImage* inImg, int x, int y, int size, int line_thickne
 {
 	IplImage* outImg = cvCloneImage(inImg);
 
-	cvLine(outImg, cvPoint(x-size,y), cvPoint(x+size,y), cvScalar(0,0,255,0), line_thickness, 8, 0);
-	cvLine(outImg, cvPoint(x,y-size), cvPoint(x,y+size), cvScalar(0,0,255,0), line_thickness, 8, 0);
+	cvLine(outImg, cvPoint(x-size,y), cvPoint(x+size,y), cvScalar(50,205,50,0), line_thickness, 8, 0);
+	cvLine(outImg, cvPoint(x,y-size), cvPoint(x,y+size), cvScalar(50,205,50,0), line_thickness, 8, 0);
 
 	return outImg;
 }
@@ -426,8 +426,8 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 		
 		// Get camera
 		capture = cvCaptureFromCAM(camIndex);
-		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_WIDTH,600);
-		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,480);
+		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_WIDTH,640);
+		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,640);
 		if (!capture) {
 			printf("Could not initialize capturing...\n");
 			return -1;
@@ -466,11 +466,6 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 	    //min = cvScalar(hmin,smin,vmin);
 	    //max = cvScalar(hmax,smax,vmax);
 	    ////////////////////////////////////////
-	    
-	    
-	    
-	    
-	    
 	    
 		
 		//printf("step2 \n");	// debug
@@ -564,7 +559,7 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 
 // *********************
 // only needed for lab08
-/*
+
 int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
 {
     // lab08
@@ -574,18 +569,23 @@ int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
     int toll = 5;   // in pixels
     float v_x,v_y;
     float Px,Py,Ix,Iy,Dx,Dy;
-    float kp_x,kp_y,ki_x,ki_y,kd_x,kd_y;
-    int timestamp = 0;
+    
+    float kp_x = 0.9, kp_y = 0.9;
+    float ki_x = 0, ki_y = 0;
+    float kd_x =0, kd_y = 0;
+    
+    int timestamp=0,iter=0,dt=0;
+    int c; 	// for wait key
 
     // we need the calibration constant to convert from pixels to mm 
-    float cal = 0.5;    // insert correct value found in previous task
+    float cal = 19;    // insert correct value found in previous task
 
     struct timeval currentTime;
     struct timeval prevTime;
 
 	FILE *fp;
 	IplImage* frame;
-	CvScalar min=cvScalar(10,10,30), max=cvScalar(255,255,255)
+	CvScalar min=cvScalar(90,90,0), max=cvScalar(255,255,255);
 
 	// Create a .txt file
 	fp = fopen("PID.txt", "w+");
@@ -611,9 +611,9 @@ int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
 	ColorTracking(frame, &x1, &y1, min, max);
 	c = cvWaitKey(10); // you need this after showing an image
     if (c != -1) {
-        break;
 		usleep(10);
     }
+    usleep(10);
 
 	// Get current time and initial error
 	e_x = targetPositionX-x1;
@@ -621,54 +621,81 @@ int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
 	prev_e_x = 0;
 	prev_e_y = 0;
 	gettimeofday(&currentTime, NULL);
+	gettimeofday(&prevTime, NULL);
 
 	// there are two options, we can plot vs:
     //        1) an int timestamp which just count number of iterations
     //        2) the proper execution time
-	fprintf(fp, "\n%d\t%d\t%d", timestamp x1, y1);
+	fprintf(fp, "\n%d\t%d\t%d", timestamp, x1, y1);
 
     // write your do - while loop here
     while (e_x>toll || e_y>toll) {
 
 		// Determine the time interval
-		prevTime = currentTime;
-		gettimeofday(&currentTime, NULL);
-		dt = currentTime.time_t-prevTime.time_t;              // time in seconds
-		//dt = currentTime.suseconds_t-prevTime.suseconds_t;  // time in milliseconds
+
+		dt = currentTime.tv_sec-prevTime.tv_sec;              // time in seconds
+		//dt = currentTime.tv_usec-prevTime.tv_usec;  // time in milliseconds
+		printf("\n%d",dt);
+		timestamp += dt;
+		
+		gettimeofday(&prevTime, NULL);
 
         // Determine the P, I and D (each for X and Y axis separately)
         // Important to remember that MoveMotor want distance in mm 
         Px = kp_x*e_x;
         Ix += ki_x*0.5*(e_x+prev_e_x)*dt;
-        Dx = kd_x*(e_x-prev_e_x)/dt;
+        
+        Py = kp_y*e_y;
+        Iy += ki_y*0.5*(e_y+prev_e_y)*dt;
+		
+		// in the first step we ignore the derivative part
+        if (iter == 0) {
+			Dx = 0;
+		}
+		else {
+			Dx = kd_x*(e_x-prev_e_x)/dt;
+		}
+		if (iter == 0) {
+			Dy = 0;
+		}
+		else {
+			Dy = kd_y*(e_y-prev_e_y)/dt;
+		}
 
 		// Compute the control command
-		v_x = (Px+Ix+Dx)*cal;   // in mm
-		v_y = (Py+Iy+Dy)*cal;   // in mm
+		v_x = (Px+Ix+Dx)/cal;   // in mm
+		v_y = (Py+Iy+Dy)/cal;   // in mm
 
 		if (v_x > 5) {          // check saturation
             v_x = 5;
-		else if (v_x <0.3) {    // to avoid too little steps
+		}
+		if (v_x < -5) {          // check saturation
+            v_x = -5;
+		}
+		else if ((v_x <0.3) && (v_x >-0.3)) {    // to avoid too little steps
             v_x = 0;
 		}
 		if (v_y > 5) {          // check saturation
             v_y = 5;
 		}
-		else if (v_y <0.3) {    // to avoid too little steps
+		if (v_y < -5) {          // check saturation
+            v_y = -5;
+		}
+		else if ((v_y <0.3) && (v_x >-0.3)) {    // to avoid too little steps
             v_y = 0;
 		}
 
         // Move the stage axis X
-        MoveMotor(fd, v_x, 2);  // motor 1 is in X direction
+        MoveMotor(fd, v_x, 1);  // motor 1 is in X direction
 
 		// Wait until done
-		// !!! isn't the wait for motion already implemented in MoveMotor?
+		sleep(2);
 
 		// Move the stage axis Y
-		MoveMotor(fd, v_y, 1);  // motor 1 is in Y direction
+		MoveMotor(fd, v_y, 2);  // motor 1 is in Y direction
 
 		// Wait until done
-		// !!! isn't the wait for motion already implemented in MoveMotor?
+		sleep(2);
 
 		// Grab the new frame from the camera
 		frame = cvQueryFrame(capture);
@@ -698,12 +725,12 @@ int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
 		e_x = targetPositionX-x1;
 		e_y = targetPositionY-y1;
 
-		timestamp ++;
-		fprintf(fp, "\n%d\t%d\t%d", timestamp x1, y1);
+		iter ++;
+		fprintf(fp, "\n%d\t%d\t%d", timestamp, x1, y1);
 	}
 
 	fclose(fp);
 
     return 0;
 }
-*/
+

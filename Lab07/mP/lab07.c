@@ -48,7 +48,6 @@ Tasks:
 // add your includes here
 #include "closedLoopControl.h" 
 
-
 int main ()
 {
     //******************************************************************************************
@@ -94,29 +93,24 @@ int main ()
      //
     //******************************************************************************************
     
-    
-    
     // YOUR CODE BEGINS HERE:
     
     // initialize your parameters
-	
 	int fd, steps, useVision, camIndex = 3, task, flag_move = 0;
 	int x1,y1,x2,y2,dx;
-	float distance, cal;
+	float distance, cal=0.0;
 	int motor, i;
-	CvScalar min = cvScalar(90,90,0), max = cvScalar(255,255,255); 
+	CvScalar min = cvScalar(100,140,0), max = cvScalar(255,255,255); 
 	//IplImage* frame;
 	//CvCapture* capture;
-	
 	
 	// Initialize the serial port
 	fd = serialport_init( "/dev/ttymxc3", 9600);
 
 	// prompt user to select a certain task
-	/*fprintf(stderr,"Which task? task 4 = 0, task 6 = 1\n");
-	scanf("%d", &task);*/
-    
-    task = 0;
+	fprintf(stderr,"Which task? task 4 = 0, task 6 = 1\n");
+	scanf("%d", &task);
+    //~ task = 0;
     
 	///////// Open Loop Motion /////////
     // --------------------------------------------------------------------------
@@ -130,7 +124,7 @@ int main ()
 
 		/*fprintf(stderr,"Distance? enter im [mm]\n");
 		scanf("%f", &distance);*/
-		distance = 3.0;
+		distance = 4.0;
 		/*while ((motor != 1) & (motor != 2)) {
 			fprintf(stderr,"\n Motor? enter 1 or 2\n");
 			scanf("%d", &motor);
@@ -139,7 +133,7 @@ int main ()
 		
 		capture = cvCaptureFromCAM(camIndex);
 		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_WIDTH,640);
-		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,480);
+		cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,640);
 		if (!capture) {
 			printf("Could not initialize capturing...\n");
 			return -1;
@@ -171,7 +165,7 @@ int main ()
 			}
 			
 			flag_move = MoveMotor(fd, distance, motor);
-			usleep(50000);
+			usleep(500);
 			
 			printf("Press enter to continue");
 			while(getchar() != '\n');
@@ -197,7 +191,6 @@ int main ()
 				    break;
 				    usleep(10);
 			    }
-
 			}
 			else {
 				fprintf(stderr, "Error in motor motion, try again \n");
@@ -206,35 +199,34 @@ int main ()
 			
 			if (motor == 1) {
 				dx = x2-x1;
-				printf("%d\t%d\t%d\n",dx,x1,x2);
 			}
 			else {
 				dx = y2-y1;
 			}
+			printf("\n%d\t%d\t%d\n",dx,x1,x2);
 			cal += dx/distance;
 			distance *= -1.0;
+			// printf("cal_loop = %f",cal);
 				
 		}
-		
-		cal /= 10;
-		printf("%f \n", cal);
+
+		cal = cal/10.0;
+		printf("\ncalibration = %f \n", cal);
 		
 		cvDestroyAllWindows();
 		cvReleaseCapture(&capture);
 		cvReleaseImage(&frame);
-		
 	}
-    
-    
+
     //---------------------------------------------------------------------------
   
   	////////////////////////////////////
     // TASK 6: move the stage in a square (5 mm sidelength) and save the coordinates
 
 	if (task == 1){
-		/*fprintf(stderr,"Use vision? no = 0, yes = 1\n");
-		scanf("%d", &useVision);*/
-		useVision = 1;
+		fprintf(stderr,"Use vision? no = 0, yes = 1\n");
+		scanf("%d", &useVision);
+		//~ useVision = 1;
 		
 		distance = 5.0;
 		//printf("distance(lab07)=%f\n",distance);	// debug
@@ -244,22 +236,14 @@ int main ()
 	
 	}
 
-    
-    
 	//---------------------------------------------------------------------------
-	
-
-
-    
+ 
     // Release captured images
 	//cvReleaseCapture(&capture);
 	//cvReleaseImage(&frame);
 	
     // Close the serial port
 	serialport_close(fd);
-	
 
-	
-	
 	return 0;
 }
