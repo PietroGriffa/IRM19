@@ -34,7 +34,7 @@ Reference:
 */
 
 // add your includes here
-
+#include "closedLoopControl.h" 
 
 int main ()
 {
@@ -84,41 +84,78 @@ int main ()
     // YOUR CODE BEGINS HERE:
     
     // initialize your parameters
-
+    int fd;
+    float cal=19;
+    int targetPositionX=0;
+    int targetPositionY=0;
+    
+    int task = 0;
+    int flag;
+    
+    CvCapture* capture;
+    
+    capture = cvCaptureFromCAM(3);
+    cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_WIDTH,640);
+    cvSetCaptureProperty(capture,CV_CAP_PROP_FRAME_HEIGHT,640);
+    if (!capture) {
+		printf("Could not initialize capturing ... \n");
+		return -1;
+	}
+	usleep(10);
 	
 	// Initialize the serial port 
-
+	fd = serialport_init("/dev/ttymxc3",9600);
 			
 	// prompt user to select a certain task
-       
+    /*fprintf(stderr,"Which task? task 4 = 0, task 6 = 1\n");
+	scanf("%d", &task);*/
+	task = 5;  
     
-    
-	
 
 	///////// Position control /////////
     //---------------------------------------------------------------------------
     ////////////////////////////////////
     // Postlab Q1: Move the magnet 5 mm with the PID function.
-    
-    
+    if (task == 1) {
+		targetPositionX = 5*cal;
+		targetPositionY = 0;
+		cvNamedWindow("Original image with target", CV_WINDOW_AUTOSIZE);
+		flag = PID(fd,targetPositionX,targetPositionY,capture);
+		if (flag != 0) {
+			printf("Error in PID function \n");
+			return -1;
+		}
+		cvDestroyAllWindows();
+		cvReleaseCapture(&capture);
+	}
     
     //---------------------------------------------------------------------------
-    
-    
-    
-    
     
     //---------------------------------------------------------------------------
     // Postlab Q2: Tune your Kp Value to achieve a "good" step response.
-
-    
+	if (task == 2) {
+		targetPositionX = 5*cal;
+		targetPositionY = 0;
+		flag = PID(fd,targetPositionX,targetPositionY,capture);
+		if (flag != 0) {
+			printf("Error in PID function \n");
+			return -1;
+		}
+	}
     
     //---------------------------------------------------------------------------
-    
-    
+     
     //---------------------------------------------------------------------------
     // Postlab Q3: Use PID for position control, move magnet 5 mm.
-
+	if (task == 3) {
+		targetPositionX = 5*cal;
+		targetPositionY = 0;
+		flag = PID(fd,targetPositionX,targetPositionY,capture);
+		if (flag != 0) {
+			printf("Error in PID function \n");
+			return -1;
+		}
+	}
     
     
     
@@ -129,7 +166,36 @@ int main ()
     //---------------------------------------------------------------------------
     ///////////////////////////////////////
     // Postlab Q5: Use PID function to move spherical magnet along a square trajectory (5 mm sidelength)
-    
+    if (task == 5) {
+		float dist=5, move_step=0;
+		int side = 1;
+		//int motor;
+		
+		while (side < 5) {
+			if (side<=2) {
+				move_step = dist;
+			}
+			else {
+				move_step = -dist;
+			}
+			if (side%2 == 0) {
+				//motor = 2;
+				targetPositionY = move_step*cal;
+				targetPositionX = 0;
+			}
+			else {
+				//motor = 1;
+				targetPositionX = move_step*cal;
+				targetPositionY = 0;
+			}
+			flag = PID(fd,targetPositionX,targetPositionY,capture);
+			if (flag != 0) {
+				printf("Error in PID function \n");
+				return -1;
+			}
+			side++;
+		}
+	}
     
     
     //---------------------------------------------------------------------------
