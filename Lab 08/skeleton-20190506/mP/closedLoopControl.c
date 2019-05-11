@@ -480,7 +480,6 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 
         // Save the coordinates
         fprintf(fp, "\n%d\t%d", xc, yc);
-        
         //printf("step4 \n");	// debug
 
         while (side < 5) {
@@ -553,7 +552,6 @@ int MoveMotorRectangular (int fd, float distance, int steps, int useVision, int 
 	return 0;
 }
 
-
 // *********************
 // only needed for lab08
 
@@ -588,7 +586,7 @@ int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
 	CvScalar min=cvScalar(100,140,0), max=cvScalar(255,255,255);
 
 	// Create a .txt file
-	fp = fopen("PID.txt", "a");
+	fp = fopen("PID.txt", "a"); // set to append for lab08 
     if (!fp)
     {
 		printf("Could not create a .txt file...\n");
@@ -748,7 +746,6 @@ int PID (int fd, int targetPositionX, int targetPositionY, CvCapture* capture)
 	}
 
 	fclose(fp);
-
     return 0;
 }
 

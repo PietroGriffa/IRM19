@@ -136,6 +136,7 @@ int main ()
 	if (task == 2) {
 		targetPositionX = 5*cal;
 		targetPositionY = 0;
+		// different tries showed kp = 0.2 works well
 		flag = PID(fd,targetPositionX,targetPositionY,capture);
 		if (flag != 0) {
 			printf("Error in PID function \n");
@@ -157,11 +158,8 @@ int main ()
 		}
 	}
     
-    
-    
     //---------------------------------------------------------------------------
 
-    
     ///////// Closed Loop control /////////
     //---------------------------------------------------------------------------
     ///////////////////////////////////////
@@ -204,12 +202,49 @@ int main ()
     //---------------------------------------------------------------------------
     ////////////////////////////////////////////
     // Postlab Q7: Move the microrobot on a square trajectory (5 mm sidelength) with open loop and closed loop (PID)
-    
-    
-    
+    if (task == 7) {
+		float dist=5, move_step=0;
+		int side = 1;
+		//int motor;
+		
+		// CLOSED LOOP
+		printf("\nStart of closed loop motion");
+		while (side < 5) {
+			if (side<=2) {
+				move_step = dist;
+			}
+			else {
+				move_step = -dist;
+			}
+			if (side%2 == 0) {
+				//motor = 2;
+				targetPositionY = move_step*cal;
+				targetPositionX = 0;
+			}
+			else {
+				//motor = 1;
+				targetPositionX = move_step*cal;
+				targetPositionY = 0;
+			}
+			flag = PID(fd,targetPositionX,targetPositionY,capture);
+			if (flag != 0) {
+				printf("Error in PID function \n");
+				return -1;
+			}
+			side++;
+		}
+		printf("\nEnd of closed loop motion");
+		printf("\n=============================");
+		printf("\nStart of open loop motion");
+		int steps = 5;
+		int useVision = 1;
+		int camIndex = 3;
+		MoveMotorRectangular(fd, dist, steps, useVision, camIndex);
+		printf("\nEnd of open loop motion");
+	}  
+  
     //---------------------------------------------------------------------------
 
-    
     // Release captured images
 	
 	
